@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loan Calculator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.5.0-beta4/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f8ff;
+        }
+        .calculator {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            width: 800px;
+            display: flex;
+        }
+        .column {
+            flex: 1;
+            padding: 0 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-top: 0;
+        }
+        p {
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        input[type="range"], select {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .result {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .monthly-payment {
+            font-size: 1.5em;
+            color: #007bff;
+            font-weight: bold;
+        }
+        #pieChart {
+            margin-top: 20px;
+        }
+        .legend {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+        }
+        .download-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator" id="calculator">
+        <div class="column">
+            <h1>Loan Calculator</h1>
+            <p>The calculated amount is approximate. The exact terms of the loan are determined individually.</p>
+            
+            <div class="input-group">
+                <label for="loanAmount">How much money do you need?</label>
+                <input type="range" id="loanAmount" min="1000" max="50000" step="1000" value="25000">
+                <output for="loanAmount" id="loanAmountOutput">25000$</output>
+            </div>
+            
+            <div class="input-group">
+                <label for="loanTerm">How many months do you need?</label>
+                <select id="loanTerm">
+                    <option value="12">12</option>
+                    <option value="24" selected>24</option>
+                    <option value="36">36</option>
+                    <option value="48">48</option>
+                    <option value="60">60</option>
+                </select>
+            </div>
+            
+            <div class="result">
+                <div>You Will Pay</div>
+                <div class="monthly-payment" id="monthlyPayment">1354.17$</div>
+                <div>Per Month</div>
+            </div>
+        </div>
+        
+        <div class="column">
+            <canvas id="pieChart" width="300" height="300"></canvas>
+            <div class="legend" id="legend"></div>
+        </div>
+    </div>
+    
+    <button class="download-btn" id="downloadPdf">Download PDF</button>
+
+    <script>
+        const { jsPDF } = window.jspdf;
+        const loanAmountSlider = document.getElementById('loanAmount');
+        const loanAmountOutput = document.getElementById('loanAmountOutput');
+        const loanTermSelect = document.getElementById('loanTerm');
+        const monthlyPaymentDiv = document.getElementById('monthlyPayment');
+        const pieChart = document.getElementById('pieChart');
+        const ctx = pieChart.getContext('2d');
+        const legend = document.getElementById('legend');
+
+        function updateCalculator() {
+            const principal = parseFloat(loanAmountSlider.value);
+            const term = parseInt(loanTermSelect.value);
+            const interestRate = 0.1; // 10% annual interest rate
+            
+            const monthlyRate = interestRate / 12;
+            const monthlyPayment = (principal * monthlyRate * Math.pow(1 + monthlyRate, term)) / (Math.pow(1 + monthlyRate, term) - 1);
+            
+            const totalPayment = monthlyPayment * term;
+            const interestPaid = totalPayment - principal;
+
+            loanAmountOutput.textContent = principal + '$';
+            monthlyPaymentDiv.textContent = monthlyPayment.toFixed(2) + '$';
+
+            drawPieChart(principal, interestPaid, 5000); // Assuming 5000 is always the preliminary fee
+        }
+
+        function drawPieChart(principal, interest, preliminary) {
+            const total = principal + interest + preliminary;
+            const data = [
+                { label: 'Principal', value: principal, color: '#007bff' },
+                { label: 'Preliminary', value: preliminary, color: '#ffc107' },
+                { label: 'Percent', value: interest, color: '#dc3545' }
+            ];
+
+            ctx.clearRect(0, 0, pieChart.width, pieChart.height);
+
+            let startAngle = 0;
+            data.forEach(segment => {
+                const sliceAngle = 2 * Math.PI * segment.value / total;
+                ctx.beginPath();
+                ctx.arc(150, 150, 100, startAngle, startAngle + sliceAngle);
+                ctx.lineTo(150, 150);
+                ctx.fillStyle = segment.color;
+                ctx.fill();
+                startAngle += sliceAngle;
+            });
+
+            // Draw center circle
+            ctx.beginPath();
+            ctx.arc(150, 150, 70, 0, 2 * Math.PI);
+            ctx.fillStyle = 'white';
+            ctx.fill();
+
+            // Draw total amount
+            ctx.font = '16px Arial';
+            ctx.fillStyle = 'black';
+            ctx.textAlign = 'center';
+            ctx.fillText('In Total', 150, 140);
+            ctx.font = 'bold 20px Arial';
+            ctx.fillText(total.toFixed(0) + '$', 150, 170);
+
+            // Update legend
+            legend.innerHTML = '';
+            data.forEach(item => {
+                const legendItem = document.createElement('div');
+                legendItem.className = 'legend-item';
+                legendItem.innerHTML = `
+                    <div class="legend-color" style="background-color: ${item.color}"></div>
+                    <div>${item.label}: ${item.value.toFixed(0)}$</div>
+                `;
+                legend.appendChild(legendItem);
+            });
+        }
+
+        loanAmountSlider.addEventListener('input', updateCalculator);
+        loanTermSelect.addEventListener('change', updateCalculator);
+
+        document.getElementById('downloadPdf').addEventListener('click', function() {
+            html2canvas(document.getElementById('calculator')).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF();
+                pdf.addImage(imgData, 'PNG', 10, 10, 190, 160);
+                pdf.save('loan_calculation.pdf');
+            });
+        });
+
+        updateCalculator(); // Initial calculation
+    </script>
+</body>
+</html>
