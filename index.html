@@ -189,7 +189,7 @@
   const formData = new FormData();
   formData.append('payload', JSON.stringify({ fullName, email, loanAmount }));
 
-  fetch('https://script.google.com/macros/s/AKfycbxyqEUTh-69Jj4t9yLiaVNscYRCAIjvsclBYcbhlvSz1FUHMI3-KrmJluP36yQ0fAyxnw/exec', {
+  fetch('https://script.google.com/macros/s/AKfycbzI0IOG3i5F6g5cTNg95B_soKu72uZ6Ri2lOFGDdBW_H3pnUaJrmqslYZwFOyNgJPOICA/exec', {
     method: 'POST',
     body: formData
   }).then(response => response.json())
